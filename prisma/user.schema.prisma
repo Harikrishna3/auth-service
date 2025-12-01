@@ -7,13 +7,52 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+enum Role {
+  USER
+  ADMIN
+  SELLER
+  WHOLESELLER
+}
+
+model DeviceToken {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  email     String   @unique
-  password  String
-  name      String
+  userId    String   @db.ObjectId
+  token     String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Seller {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model User {
+  id                      String        @id @default(auto()) @map("_id") @db.ObjectId
+  email                   String        @unique
+  password                String
+  mobileNo                String        @unique
+  firstName               String?
+  lastName                String?
+  cartId                  String?       @unique @default("") @db.ObjectId
+  wishlistId              String?       @unique @default("") @db.ObjectId
+  role                    Role[]        @default([USER])
+  seller                  String?       @db.ObjectId
+  wholeseller             String?       @db.ObjectId
+  address                 String[]      @default([]) @db.ObjectId
+  isSellerPaid            Boolean?      @default(false)
+  profilePic              String?
+  userInterest            String?
+  passwordResetOtp        String?
+  passwordResetOtpExpires DateTime?
+  referralCode            String?
+  referredBy              String?
+  rewardCoins             Int?
+  createdAt               DateTime?     @default(now())
+  updatedAt               DateTime?     @updatedAt
+  tokens                  DeviceToken[]
+  Seller                  Seller[]
 
   @@map("users")
 }

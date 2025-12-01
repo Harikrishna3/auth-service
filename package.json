@@ -6,8 +6,10 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push"
+    "test": "jest --runInBand --detectOpenHandles",
+    "test:watch": "jest --watch",
+    "prisma:generate": "prisma generate --schema=prisma/user.schema.prisma",
+    "prisma:push": "prisma db push --schema=prisma/user.schema.prisma"
   },
   "keywords": ["express", "prisma", "mongodb", "jwt", "authentication"],
   "author": "",
@@ -23,6 +25,9 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
-    "prisma": "^5.7.0"
+    "prisma": "^5.7.0",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "@types/jest": "^29.5.11"
   }
 }
