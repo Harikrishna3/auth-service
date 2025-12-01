@@ -8,8 +8,16 @@
     "dev": "nodemon src/server.js",
     "test": "jest --runInBand --detectOpenHandles",
     "test:watch": "jest --watch",
-    "prisma:generate": "prisma generate --schema=prisma/user.schema.prisma",
-    "prisma:push": "prisma db push --schema=prisma/user.schema.prisma"
+    "prisma:generate": "prisma generate --schema=prisma/user.schema.prisma && prisma generate --schema=prisma/message.schema.prisma",
+    "prisma:push": "prisma db push --schema=prisma/user.schema.prisma && prisma db push --schema=prisma/message.schema.prisma",
+    "prisma:generate:user": "prisma generate --schema=prisma/user.schema.prisma",
+    "prisma:generate:message": "prisma generate --schema=prisma/message.schema.prisma",
+    "prisma:push:user": "prisma db push --schema=prisma/user.schema.prisma",
+    "prisma:push:message": "prisma db push --schema=prisma/message.schema.prisma",
+    "seed:user": "node scripts/createDummyUser.js",
+    "seed:user2": "node scripts/createSecondUser.js",
+    "seed:clear": "node scripts/clearUsers.js",
+    "seed:all": "node scripts/clearUsers.js && node scripts/createDummyUser.js && node scripts/createSecondUser.js"
   },
   "keywords": [
     "express",

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Client with JWT Auth</title>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+    #messages { border: 1px solid #ccc; height: 400px; overflow-y: scroll; padding: 10px; margin: 20px 0; }
+    .message { margin: 10px 0; padding: 8px; background: #f0f0f0; border-radius: 5px; }
+    .message.own { background: #d4edda; }
+    input, button { padding: 10px; margin: 5px; }
+    #messageInput { width: 70%; }
+  </style>
+</head>
+<body>
+  <h1>Chat Client (JWT Auth)</h1>
+  
+  <div>
+    <input type="text" id="token" placeholder="Enter JWT Token" style="width: 80%;">
+    <button onclick="connect()">Connect</button>
+  </div>
+
+  <div>
+    <input type="text" id="roomId" placeholder="Room ID" value="room1">
+    <button onclick="joinRoom()">Join Room</button>
+  </div>
+
+  <div id="messages"></div>
+
+  <div>
+    <input type="text" id="messageInput" placeholder="Type a message...">
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    let socket;
+    let currentUserId;
+
+    function connect() {
+      const token = document.getElementById('token').value;
+      if (!token) {
+        alert('Please enter a JWT token');
+        return;
+      }
+
+      socket = io('http://localhost:3000', {
+        auth: { token }
+      });
+
+      socket.on('connect', () => {
+        console.log('Connected:', socket.id);
+        addMessage('System', 'Connected to chat server');
+      });
+
+      socket.on('newMessage', (data) => {
+        const isOwn = data.senderId === currentUserId;
+        addMessage(
+          data.sender.firstName || data.sender.email,
+          data.message,
+          isOwn
+        );
+      });
+
+      socket.on('messageHistory', (messages) => {
+        document.getElementById('messages').innerHTML = '';
+        messages.forEach(msg => {
+          const isOwn = msg.senderId === currentUserId;
+          addMessage(
+            msg.sender.firstName || msg.sender.email,
+            msg.message,
+            isOwn
+          );
+        });
+      });
+
+      socket.on('error', (error) => {
+        addMessage('Error', error.message);
+      });
+
+      socket.on('connect_error', (error) => {
+        addMessage('Error', 'Connection failed: ' + error.message);
+      });
+
+      socket.on('disconnect', () => {
+        addMessage('System', 'Disconnected from server');
+      });
+    }
+
+    function joinRoom() {
+      if (!socket) {
+        alert('Please connect first');
+        return;
+      }
+      const roomId = document.getElementById('roomId').value;
+      socket.emit('joinRoom', roomId);
+      socket.emit('getMessages', { roomId, limit: 50 });
+      addMessage('System', `Joined room: ${roomId}`);
+    }
+
+    function sendMessage() {
+      if (!socket) {
+        alert('Please connect first');
+        return;
+      }
+      const roomId = document.getElementById('roomId').value;
+      const message = document.getElementById('messageInput').value;
+      
+      if (!message.trim()) return;
+
+      socket.emit('sendMessage', { roomId, message });
+      document.getElementById('messageInput').value = '';
+    }
+
+    function addMessage(sender, message, isOwn = false) {
+      const messagesDiv = document.getElementById('messages');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message' + (isOwn ? ' own' : '');
+      messageDiv.innerHTML = `<strong>${sender}:</strong> ${message}`;
+      messagesDiv.appendChild(messageDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    document.getElementById('messageInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+</html>

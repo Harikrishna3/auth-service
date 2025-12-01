@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/@prisma/client-user"
+  output   = "../node_modules/@prisma/client-message"
 }
 
 datasource db {
@@ -8,13 +8,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model Message {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  email     String   @unique
-  password  String
-  name      String
+  roomId    String
+  senderId  String   @db.ObjectId
+  message   String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  @@map("users")
+  @@map("messages")
 }

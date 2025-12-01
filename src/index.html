@@ -1,60 +1,387 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Socket.IO Test Chat</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auth Chat Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 900px;
+      width: 100%;
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 20px;
+      padding: 20px;
+    }
+    .auth-section, .chat-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .auth-section {
+      border-right: 2px solid #f0f0f0;
+      padding-right: 20px;
+    }
+    h3 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+    input, button {
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      text-align: center;
+    }
+    .status.connected {
+      background: #d4edda;
+      color: #155724;
+    }
+    .status.disconnected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+    #messages {
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      height: 350px;
+      overflow-y: auto;
+      padding: 15px;
+      background: #f9f9f9;
+    }
+    .message {
+      margin: 8px 0;
+      padding: 10px;
+      border-radius: 8px;
+      background: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .message.own {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      margin-left: 20%;
+    }
+    .message.other {
+      background: white;
+      margin-right: 20%;
+    }
+    .message-sender {
+      font-weight: 600;
+      font-size: 12px;
+      margin-bottom: 4px;
+      opacity: 0.8;
+    }
+    .message-text {
+      font-size: 14px;
+    }
+    .message-time {
+      font-size: 11px;
+      opacity: 0.6;
+      margin-top: 4px;
+    }
+    .input-group {
+      display: flex;
+      gap: 10px;
+    }
+    .input-group input {
+      flex: 1;
+    }
+    @media (max-width: 768px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+      .auth-section {
+        border-right: none;
+        border-bottom: 2px solid #f0f0f0;
+        padding-right: 0;
+        padding-bottom: 20px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h2>Test Chat (Web)</h2>
+  <div class="container">
+    <div class="header">
+      <h1>🔐 JWT Authenticated Chat</h1>
+      <p>Test your authentication and real-time messaging</p>
+    </div>
+    
+    <div class="content">
+      <!-- Authentication Section -->
+      <div class="auth-section">
+        <h3>1. Authentication</h3>
+        <input type="email" id="email" placeholder="Email" value="test@example.com">
+        <input type="password" id="password" placeholder="Password" value="password123">
+        <button id="loginBtn">Login</button>
+        <button id="logoutBtn" style="display:none;">Logout</button>
+        
+        <div id="authStatus" class="status disconnected">Not authenticated</div>
+        
+        <h3>2. Join Room</h3>
+        <input id="roomId" placeholder="Room ID" value="room1">
+        <button id="joinBtn" disabled>Join Room</button>
+        <button id="loadHistoryBtn" disabled>Load History</button>
+        
+        <div id="roomStatus" class="status info" style="display:none;"></div>
+      </div>
 
-  <input id="room" placeholder="Room ID (example: room1)" />
-  <button id="join">Join Room</button>
+      <!-- Chat Section -->
+      <div class="chat-section">
+        <h3>Messages</h3>
+        <div id="messages"></div>
+        
+        <div class="input-group">
+          <input id="messageInput" placeholder="Type your message..." disabled>
+          <button id="sendBtn" disabled>Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <h3>Messages</h3>
-  <div id="chat" style="border: 1px solid #333; height: 200px; width: 300px; overflow-y: scroll; padding: 5px;"></div>
-
-  <input id="msg" placeholder="Type message..." />
-  <button id="send">Send</button>
-
-  <!-- Load Socket.IO client -->
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-
   <script>
-    // Connect to server
-    const socket = io("http://localhost:3000");
-
+    let socket;
+    let token = null;
+    let currentUserId = null;
     let currentRoom = null;
-    const senderId = "web_user_" + Math.floor(Math.random() * 1000);
 
-    // Join room
-    document.getElementById("join").onclick = () => {
-      const roomId = document.getElementById("room").value.trim();
-      if (!roomId) return alert("Please enter room ID");
+    const API_URL = 'http://localhost:3000';
 
-      currentRoom = roomId;
-      socket.emit("joinRoom", roomId);
-      alert("Joined room: " + roomId);
+    // DOM Elements
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const authStatus = document.getElementById('authStatus');
+    const roomIdInput = document.getElementById('roomId');
+    const joinBtn = document.getElementById('joinBtn');
+    const loadHistoryBtn = document.getElementById('loadHistoryBtn');
+    const roomStatus = document.getElementById('roomStatus');
+    const messagesDiv = document.getElementById('messages');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    // Login
+    loginBtn.onclick = async () => {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+      
+      if (!email || !password) {
+        alert('Please enter email and password');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/api/auth/signin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          token = data.data.token;
+          currentUserId = data.data.user.id;
+          authStatus.textContent = `✓ Logged in as ${data.data.user.name || data.data.user.email}`;
+          authStatus.className = 'status connected';
+          
+          // Update UI
+          emailInput.disabled = true;
+          passwordInput.disabled = true;
+          loginBtn.style.display = 'none';
+          logoutBtn.style.display = 'block';
+          joinBtn.disabled = false;
+          loadHistoryBtn.disabled = false;
+          
+          connectSocket();
+        } else {
+          authStatus.textContent = `✗ Login failed: ${data.message}`;
+          authStatus.className = 'status disconnected';
+        }
+      } catch (error) {
+        authStatus.textContent = `✗ Error: ${error.message}`;
+        authStatus.className = 'status disconnected';
+      }
     };
 
-    // Send message
-    document.getElementById("send").onclick = () => {
-      const message = document.getElementById("msg").value.trim();
-      if (!message || !currentRoom) return;
+    // Logout
+    logoutBtn.onclick = () => {
+      // Disconnect socket
+      if (socket) {
+        socket.disconnect();
+      }
+      
+      // Reset state
+      token = null;
+      currentUserId = null;
+      currentRoom = null;
+      
+      // Reset UI
+      authStatus.textContent = 'Not authenticated';
+      authStatus.className = 'status disconnected';
+      emailInput.disabled = false;
+      passwordInput.disabled = false;
+      loginBtn.style.display = 'block';
+      logoutBtn.style.display = 'none';
+      joinBtn.disabled = true;
+      loadHistoryBtn.disabled = true;
+      messageInput.disabled = true;
+      sendBtn.disabled = true;
+      roomStatus.style.display = 'none';
+      messagesDiv.innerHTML = '';
+      
+      console.log('✓ Logged out successfully');
+    };
 
-      socket.emit("sendMessage", {
-        roomId: currentRoom,
-        message,
-        senderId
+    // Connect Socket
+    function connectSocket() {
+      socket = io(API_URL, {
+        auth: { token }
       });
 
-      document.getElementById("msg").value = "";
+      socket.on('connect', () => {
+        console.log('Socket connected:', socket.id);
+      });
+
+      socket.on('newMessage', (data) => {
+        addMessage(data);
+      });
+
+      socket.on('messageHistory', (messages) => {
+        messagesDiv.innerHTML = '';
+        messages.forEach(msg => addMessage(msg));
+      });
+
+      socket.on('error', (error) => {
+        alert('Error: ' + error.message);
+      });
+
+      socket.on('connect_error', (error) => {
+        authStatus.textContent = `✗ Socket error: ${error.message}`;
+        authStatus.className = 'status disconnected';
+      });
+    }
+
+    // Join Room
+    joinBtn.onclick = () => {
+      const roomId = roomIdInput.value.trim();
+      if (!roomId) {
+        alert('Please enter room ID');
+        return;
+      }
+
+      currentRoom = roomId;
+      socket.emit('joinRoom', roomId);
+      roomStatus.textContent = `✓ Joined room: ${roomId}`;
+      roomStatus.className = 'status connected';
+      roomStatus.style.display = 'block';
+      messageInput.disabled = false;
+      sendBtn.disabled = false;
     };
 
-    // Receive new messages
-    socket.on("newMessage", (msg) => {
-      const div = document.createElement("div");
-      div.textContent = `${msg.senderId}: ${msg.message}`;
-      document.getElementById("chat").appendChild(div);
+    // Load History
+    loadHistoryBtn.onclick = () => {
+      if (!currentRoom) {
+        alert('Please join a room first');
+        return;
+      }
+      socket.emit('getMessages', { roomId: currentRoom, limit: 50 });
+    };
+
+    // Send Message
+    sendBtn.onclick = sendMessage;
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
     });
+
+    // Login on Enter key
+    passwordInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') loginBtn.click();
+    });
+
+    function sendMessage() {
+      const message = messageInput.value.trim();
+      if (!message || !currentRoom) return;
+
+      socket.emit('sendMessage', { roomId: currentRoom, message });
+      messageInput.value = '';
+    }
+
+    // Add Message to UI
+    function addMessage(data) {
+      const messageDiv = document.createElement('div');
+      const isOwn = data.senderId === currentUserId;
+      messageDiv.className = `message ${isOwn ? 'own' : 'other'}`;
+      
+      const senderName = data.sender ? 
+        (data.sender.name || data.sender.name || data.sender.email) : 
+        'Unknown';
+      
+      const time = new Date(data.createdAt).toLocaleTimeString();
+      
+      messageDiv.innerHTML = `
+        <div class="message-sender">${senderName}</div>
+        <div class="message-text">${data.message}</div>
+        <div class="message-time">${time}</div>
+      `;
+      
+      messagesDiv.appendChild(messageDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
   </script>
 </body>
 </html>
